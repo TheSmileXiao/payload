@@ -87,6 +87,11 @@
     line-height: var(--text-body-large-bold-line-height);
   }
 
+  .hierarchy-tables__joined-grids {
+    display: grid;
+    gap: var(--spacer-4);
+  }
+
   .hierarchy-tables__plane-pagination {
     display: flex;
     flex-wrap: wrap;

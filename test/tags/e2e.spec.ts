@@ -136,6 +136,58 @@ test.describe('Tags', () => {
     await page.unrouteAll()
   })
 
+  test('should reuse cards for mixed tag members shown in a shared table and separate grids', async () => {
+    const { docs: italianTags } = await payload.find({
+      collection: tagsSlug,
+      overrideAccess: true,
+      where: { name: { equals: 'Italian' } },
+    })
+    const childTag = await payload.create({
+      collection: tagsSlug,
+      data: { name: 'Italian Grid Subtag', [`_h_${tagsSlug}`]: italianTags[0].id },
+      overrideAccess: true,
+    })
+    createdTagIds.push(childTag.id)
+
+    const tree = await openTagsTree()
+
+    await expandNode(tree, 'Cuisines')
+    await enterParent(tree, 'Italian')
+
+    const table = page.locator('.hierarchy-tables table')
+    await expect(table).toHaveCount(1)
+    await expect(table.getByRole('columnheader', { name: 'Collection' })).toBeVisible()
+    await expect(
+      table.getByRole('checkbox', { name: 'Select Posts: Traditional Tiramisu' }),
+    ).toBeVisible()
+    await page.getByRole('radio', { name: 'Grid' }).click()
+
+    const hierarchyGrid = page.getByRole('list', { name: 'Tags' })
+    const documentGrid = page.getByRole('list', { name: 'Documents' })
+
+    await expect(hierarchyGrid).toHaveCount(1)
+    await expect(documentGrid).toHaveCount(1)
+    await expect(
+      hierarchyGrid.getByRole('link', { name: 'Italian Grid Subtag', exact: true }),
+    ).toBeVisible()
+    await expect(hierarchyGrid.locator('.card-grid__item')).toHaveCount(1)
+    await expect(documentGrid.getByRole('link', { name: 'Traditional Tiramisu' })).toBeVisible()
+    await expect(documentGrid.getByRole('link', { name: 'Guide to Italian Cuisine' })).toBeVisible()
+    await expect(documentGrid.getByRole('link', { name: /mushroom-risotto.png/ })).toBeVisible()
+    await expect(
+      documentGrid.locator('.document-card', { hasText: 'mushroom-risotto.png' }).locator('img'),
+    ).toHaveAttribute('src', /mushroom-risotto/)
+
+    const postCard = documentGrid.locator('.document-card', { hasText: 'Traditional Tiramisu' })
+
+    await postCard.click()
+    await expect(postCard).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('button', { name: 'Move', exact: true })).toHaveCount(0)
+
+    await page.getByRole('radio', { name: 'Table' }).click()
+    await expect(page.locator('.hierarchy-tables table')).toHaveCount(1)
+  })
+
   test.describe('hierarchy relationship field', () => {
     test('should apply, cancel, reopen, and clear Tags field selections', async () => {
       const post = await payload.create({

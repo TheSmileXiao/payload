@@ -37,6 +37,7 @@ export const Tags: CollectionConfig = {
   ],
   labels: { plural: 'Tags', singular: 'Tag' },
   tags: {
+    joinField: { name: 'contents' },
     admin: {
       components: {
         Icon: {
